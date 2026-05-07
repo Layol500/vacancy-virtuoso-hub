@@ -127,8 +127,6 @@ export const searchJobs = createServerFn({ method: "POST" })
       return { jobs: [], error: "Job search is not configured. Add a RapidAPI key with JSearch subscribed." };
     }
     const q = encodeURIComponent(`${data.query}${data.location ? " in " + data.location : ""}`);
-    const params = new URLSearchParams({ query: "", page: String(data.page || 1), num_pages: "1" });
-    params.delete("query");
     let url = `https://jsearch.p.rapidapi.com/search?query=${q}&page=${data.page || 1}&num_pages=1`;
     if (data.seniority) url += `&job_requirements=${data.seniority}`;
     if (data.employmentType) url += `&employment_types=${data.employmentType}`;
