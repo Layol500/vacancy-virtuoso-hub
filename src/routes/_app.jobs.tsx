@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Search, ExternalLink, Bookmark, Sparkles, Wand2, FileText } from "lucide-react";
+import { Loader2, Search, ExternalLink, Bookmark, Sparkles, Wand2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs")({ component: JobsPage });
 
