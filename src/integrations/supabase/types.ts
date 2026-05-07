@@ -14,7 +14,209 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analyses: {
+        Row: {
+          created_at: string
+          cv_id: string | null
+          id: string
+          job_id: string | null
+          matched_keywords: Json
+          missing_keywords: Json
+          score: number
+          strengths: Json
+          suggestions: Json
+          summary: string | null
+        }
+        Insert: {
+          created_at?: string
+          cv_id?: string | null
+          id?: string
+          job_id?: string | null
+          matched_keywords?: Json
+          missing_keywords?: Json
+          score?: number
+          strengths?: Json
+          suggestions?: Json
+          summary?: string | null
+        }
+        Update: {
+          created_at?: string
+          cv_id?: string | null
+          id?: string
+          job_id?: string | null
+          matched_keywords?: Json
+          missing_keywords?: Json
+          score?: number
+          strengths?: Json
+          suggestions?: Json
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analyses_cv_id_fkey"
+            columns: ["cv_id"]
+            isOneToOne: false
+            referencedRelation: "cvs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analyses_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          follow_up_at: string | null
+          id: string
+          job_id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          follow_up_at?: string | null
+          id?: string
+          job_id: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          follow_up_at?: string | null
+          id?: string
+          job_id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cover_letters: {
+        Row: {
+          content: string
+          created_at: string
+          cv_id: string | null
+          id: string
+          job_id: string | null
+          tone: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          cv_id?: string | null
+          id?: string
+          job_id?: string | null
+          tone?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          cv_id?: string | null
+          id?: string
+          job_id?: string | null
+          tone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cover_letters_cv_id_fkey"
+            columns: ["cv_id"]
+            isOneToOne: false
+            referencedRelation: "cvs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cover_letters_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cvs: {
+        Row: {
+          content: string
+          created_at: string
+          file_name: string | null
+          file_path: string | null
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          file_name?: string | null
+          file_path?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      jobs: {
+        Row: {
+          company: string | null
+          created_at: string
+          description: string
+          external_id: string | null
+          id: string
+          location: string | null
+          source_url: string | null
+          title: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          description?: string
+          external_id?: string | null
+          id?: string
+          location?: string | null
+          source_url?: string | null
+          title: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          description?: string
+          external_id?: string | null
+          id?: string
+          location?: string | null
+          source_url?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +225,12 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      application_status:
+        | "saved"
+        | "applied"
+        | "interview"
+        | "offer"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +357,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      application_status: [
+        "saved",
+        "applied",
+        "interview",
+        "offer",
+        "rejected",
+      ],
+    },
   },
 } as const
