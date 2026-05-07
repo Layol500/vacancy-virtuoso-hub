@@ -98,13 +98,26 @@ export const generateCoverLetter = createServerFn({ method: "POST" })
     return { content: text as string };
   });
 
+const SENIORITY = ["no_experience", "under_3_years_experience", "more_than_3_years_experience", "no_degree"] as const;
+const EMPLOYMENT = ["FULLTIME", "PARTTIME", "CONTRACTOR", "INTERN"] as const;
+
 export const searchJobs = createServerFn({ method: "POST" })
-  .inputValidator((d: { query: string; location?: string; page?: number }) =>
+  .inputValidator((d: {
+    query: string;
+    location?: string;
+    page?: number;
+    seniority?: string;
+    employmentType?: string;
+    remoteOnly?: boolean;
+  }) =>
     z
       .object({
         query: z.string().min(1).max(200),
         location: z.string().max(120).optional(),
         page: z.number().int().min(1).max(10).optional(),
+        seniority: z.enum(SENIORITY).optional(),
+        employmentType: z.enum(EMPLOYMENT).optional(),
+        remoteOnly: z.boolean().optional(),
       })
       .parse(d),
   )
@@ -114,7 +127,12 @@ export const searchJobs = createServerFn({ method: "POST" })
       return { jobs: [], error: "Job search is not configured. Add a RapidAPI key with JSearch subscribed." };
     }
     const q = encodeURIComponent(`${data.query}${data.location ? " in " + data.location : ""}`);
-    const url = `https://jsearch.p.rapidapi.com/search?query=${q}&page=${data.page || 1}&num_pages=1`;
+    const params = new URLSearchParams({ query: "", page: String(data.page || 1), num_pages: "1" });
+    params.delete("query");
+    let url = `https://jsearch.p.rapidapi.com/search?query=${q}&page=${data.page || 1}&num_pages=1`;
+    if (data.seniority) url += `&job_requirements=${data.seniority}`;
+    if (data.employmentType) url += `&employment_types=${data.employmentType}`;
+    if (data.remoteOnly) url += `&remote_jobs_only=true`;
     try {
       const r = await fetch(url, {
         headers: { "X-RapidAPI-Key": key, "X-RapidAPI-Host": "jsearch.p.rapidapi.com" },
