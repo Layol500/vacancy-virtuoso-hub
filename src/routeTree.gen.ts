@@ -9,50 +9,177 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as AppIndexRouteImport } from './routes/_app.index'
+import { Route as AppMatchRouteImport } from './routes/_app.match'
+import { Route as AppJobsRouteImport } from './routes/_app.jobs'
+import { Route as AppCvRouteImport } from './routes/_app.cv'
+import { Route as AppCoverLetterRouteImport } from './routes/_app.cover-letter'
+import { Route as AppApplicationsRouteImport } from './routes/_app.applications'
 
-const IndexRoute = IndexRouteImport.update({
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMatchRoute = AppMatchRouteImport.update({
+  id: '/match',
+  path: '/match',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppJobsRoute = AppJobsRouteImport.update({
+  id: '/jobs',
+  path: '/jobs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCvRoute = AppCvRouteImport.update({
+  id: '/cv',
+  path: '/cv',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCoverLetterRoute = AppCoverLetterRouteImport.update({
+  id: '/cover-letter',
+  path: '/cover-letter',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppApplicationsRoute = AppApplicationsRouteImport.update({
+  id: '/applications',
+  path: '/applications',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AppIndexRoute
+  '/applications': typeof AppApplicationsRoute
+  '/cover-letter': typeof AppCoverLetterRoute
+  '/cv': typeof AppCvRoute
+  '/jobs': typeof AppJobsRoute
+  '/match': typeof AppMatchRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/applications': typeof AppApplicationsRoute
+  '/cover-letter': typeof AppCoverLetterRoute
+  '/cv': typeof AppCvRoute
+  '/jobs': typeof AppJobsRoute
+  '/match': typeof AppMatchRoute
+  '/': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/_app/applications': typeof AppApplicationsRoute
+  '/_app/cover-letter': typeof AppCoverLetterRoute
+  '/_app/cv': typeof AppCvRoute
+  '/_app/jobs': typeof AppJobsRoute
+  '/_app/match': typeof AppMatchRoute
+  '/_app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/applications'
+    | '/cover-letter'
+    | '/cv'
+    | '/jobs'
+    | '/match'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/applications' | '/cover-letter' | '/cv' | '/jobs' | '/match' | '/'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/_app/applications'
+    | '/_app/cover-letter'
+    | '/_app/cv'
+    | '/_app/jobs'
+    | '/_app/match'
+    | '/_app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app/': {
+      id: '/_app/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/match': {
+      id: '/_app/match'
+      path: '/match'
+      fullPath: '/match'
+      preLoaderRoute: typeof AppMatchRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/jobs': {
+      id: '/_app/jobs'
+      path: '/jobs'
+      fullPath: '/jobs'
+      preLoaderRoute: typeof AppJobsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cv': {
+      id: '/_app/cv'
+      path: '/cv'
+      fullPath: '/cv'
+      preLoaderRoute: typeof AppCvRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/cover-letter': {
+      id: '/_app/cover-letter'
+      path: '/cover-letter'
+      fullPath: '/cover-letter'
+      preLoaderRoute: typeof AppCoverLetterRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/applications': {
+      id: '/_app/applications'
+      path: '/applications'
+      fullPath: '/applications'
+      preLoaderRoute: typeof AppApplicationsRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
 
+interface AppRouteChildren {
+  AppApplicationsRoute: typeof AppApplicationsRoute
+  AppCoverLetterRoute: typeof AppCoverLetterRoute
+  AppCvRoute: typeof AppCvRoute
+  AppJobsRoute: typeof AppJobsRoute
+  AppMatchRoute: typeof AppMatchRoute
+  AppIndexRoute: typeof AppIndexRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppApplicationsRoute: AppApplicationsRoute,
+  AppCoverLetterRoute: AppCoverLetterRoute,
+  AppCvRoute: AppCvRoute,
+  AppJobsRoute: AppJobsRoute,
+  AppMatchRoute: AppMatchRoute,
+  AppIndexRoute: AppIndexRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
