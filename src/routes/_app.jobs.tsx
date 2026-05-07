@@ -236,13 +236,58 @@ function JobsPage() {
         </CardContent>
       </Card>
 
+      {results.length > 0 && (
+        <Card className="border-primary/30">
+          <CardContent className="pt-6 flex flex-col md:flex-row md:items-center gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Wand2 className="size-4 text-primary" /> Auto-match top jobs
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Score every result against your CV, save the top picks, and draft tailored cover letters.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="topn" className="text-xs text-muted-foreground">Top</Label>
+              <Select value={topN} onValueChange={setTopN}>
+                <SelectTrigger id="topn" className="w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[1, 3, 5, 10].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={autoMatchAndDraft} disabled={autoBusy || !cv?.content}>
+                {autoBusy ? <Loader2 className="size-4 animate-spin mr-2" /> : <Sparkles className="size-4 mr-2" />}
+                Auto-match & draft
+              </Button>
+            </div>
+          </CardContent>
+          {autoBusy && autoStep && (
+            <CardContent className="pt-0 text-xs text-muted-foreground">{autoStep}</CardContent>
+          )}
+          {!cv?.content && (
+            <CardContent className="pt-0 text-xs text-destructive">
+              Upload your CV on <Link to="/cv" className="underline">My CV</Link> to enable auto-match.
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       <div className="space-y-3">
         {results.map((j) => (
           <Card key={j.external_id}>
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">{j.title}</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {j.title}
+                    {scores[j.external_id] != null && (
+                      <Badge variant={scores[j.external_id] >= 70 ? "default" : "secondary"}>
+                        {scores[j.external_id]}/100
+                      </Badge>
+                    )}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {j.company} {j.location && <Badge variant="secondary" className="ml-2">{j.location}</Badge>}
                   </p>
