@@ -8,6 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Loader2, Search, ExternalLink, Bookmark, Sparkles } from "lucide-react";
 
@@ -27,6 +30,9 @@ function JobsPage() {
   const searchFn = useServerFn(searchJobs);
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [seniority, setSeniority] = useState<string>("any");
+  const [employmentType, setEmploymentType] = useState<string>("any");
+  const [remoteOnly, setRemoteOnly] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +43,15 @@ function JobsPage() {
     setBusy(true);
     setError(null);
     try {
-      const r = await searchFn({ data: { query, location } });
+      const r = await searchFn({
+        data: {
+          query,
+          location,
+          seniority: seniority !== "any" ? (seniority as any) : undefined,
+          employmentType: employmentType !== "any" ? (employmentType as any) : undefined,
+          remoteOnly: remoteOnly || undefined,
+        },
+      });
       setResults(r.jobs);
       if (r.error) setError(r.error);
     } catch (e: any) {
@@ -76,23 +90,57 @@ function JobsPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={go} className="flex flex-col md:flex-row gap-2">
-            <Input
-              placeholder="Job title or keywords (e.g. data analyst)"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="flex-1"
-            />
-            <Input
-              placeholder="Location (optional)"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="md:w-60"
-            />
-            <Button type="submit" disabled={busy}>
-              {busy ? <Loader2 className="size-4 animate-spin mr-2" /> : <Search className="size-4 mr-2" />}
-              Search
-            </Button>
+          <form onSubmit={go} className="space-y-3">
+            <div className="flex flex-col md:flex-row gap-2">
+              <Input
+                placeholder="Job title or keywords (e.g. data analyst)"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1"
+              />
+              <Input
+                placeholder="Location (city, country)"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="md:w-60"
+              />
+              <Button type="submit" disabled={busy}>
+                {busy ? <Loader2 className="size-4 animate-spin mr-2" /> : <Search className="size-4 mr-2" />}
+                Search
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Seniority</Label>
+                <Select value={seniority} onValueChange={setSeniority}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any level</SelectItem>
+                    <SelectItem value="no_experience">Entry / no experience</SelectItem>
+                    <SelectItem value="under_3_years_experience">Junior (under 3 yrs)</SelectItem>
+                    <SelectItem value="more_than_3_years_experience">Senior (3+ yrs)</SelectItem>
+                    <SelectItem value="no_degree">No degree required</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Employment type</Label>
+                <Select value={employmentType} onValueChange={setEmploymentType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any type</SelectItem>
+                    <SelectItem value="FULLTIME">Full-time</SelectItem>
+                    <SelectItem value="PARTTIME">Part-time</SelectItem>
+                    <SelectItem value="CONTRACTOR">Contract</SelectItem>
+                    <SelectItem value="INTERN">Internship</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center justify-between md:justify-start gap-3 md:pt-6">
+                <Label htmlFor="remote" className="text-sm">Remote only</Label>
+                <Switch id="remote" checked={remoteOnly} onCheckedChange={setRemoteOnly} />
+              </div>
+            </div>
           </form>
           {error && (
             <p className="mt-3 text-sm text-destructive">
