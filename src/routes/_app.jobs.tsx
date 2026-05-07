@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQueryClient } from "@tanstack/react-query";
-import { searchJobs } from "@/lib/ai.functions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { searchJobs, analyzeMatch, generateCoverLetter } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Search, ExternalLink, Bookmark, Sparkles } from "lucide-react";
+import { Loader2, Search, ExternalLink, Bookmark, Sparkles, Wand2, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs")({ component: JobsPage });
 
