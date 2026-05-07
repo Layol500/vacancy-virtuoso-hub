@@ -30,6 +30,9 @@ function JobsPage() {
   const searchFn = useServerFn(searchJobs);
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [seniority, setSeniority] = useState<string>("any");
+  const [employmentType, setEmploymentType] = useState<string>("any");
+  const [remoteOnly, setRemoteOnly] = useState(false);
   const [results, setResults] = useState<Result[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +43,15 @@ function JobsPage() {
     setBusy(true);
     setError(null);
     try {
-      const r = await searchFn({ data: { query, location } });
+      const r = await searchFn({
+        data: {
+          query,
+          location,
+          seniority: seniority !== "any" ? (seniority as any) : undefined,
+          employmentType: employmentType !== "any" ? (employmentType as any) : undefined,
+          remoteOnly: remoteOnly || undefined,
+        },
+      });
       setResults(r.jobs);
       if (r.error) setError(r.error);
     } catch (e: any) {
