@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQueryClient } from "@tanstack/react-query";
-import { searchJobs } from "@/lib/ai.functions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { searchJobs, analyzeMatch, generateCoverLetter } from "@/lib/ai.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Search, ExternalLink, Bookmark, Sparkles } from "lucide-react";
+import { Loader2, Search, ExternalLink, Bookmark, Sparkles, Wand2 } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs")({ component: JobsPage });
 
@@ -28,20 +28,33 @@ type Result = {
 function JobsPage() {
   const qc = useQueryClient();
   const searchFn = useServerFn(searchJobs);
+  const analyzeFn = useServerFn(analyzeMatch);
+  const coverFn = useServerFn(generateCoverLetter);
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [seniority, setSeniority] = useState<string>("any");
   const [employmentType, setEmploymentType] = useState<string>("any");
   const [remoteOnly, setRemoteOnly] = useState(false);
+  const [topN, setTopN] = useState<string>("3");
   const [results, setResults] = useState<Result[]>([]);
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoStep, setAutoStep] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: cv } = useQuery({
+    queryKey: ["cv"],
+    queryFn: async () =>
+      (await supabase.from("cvs").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle()).data,
+  });
 
   async function go(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
     setBusy(true);
     setError(null);
+    setScores({});
     try {
       const r = await searchFn({
         data: {
@@ -78,6 +91,79 @@ function JobsPage() {
       await supabase.from("applications").insert({ job_id: data.id, status: "saved" });
       toast.success("Saved to tracker");
       qc.invalidateQueries();
+    }
+    return data?.id as string | undefined;
+  }
+
+  async function autoMatchAndDraft() {
+    if (!cv?.content) return toast.error("Upload your CV first on My CV");
+    if (!results.length) return toast.error("Run a search first");
+    const n = Math.max(1, Math.min(parseInt(topN) || 3, results.length));
+    setAutoBusy(true);
+    setScores({});
+    try {
+      setAutoStep(`Scoring ${results.length} jobs...`);
+      const scored: { job: Result; score: number; analysis: any }[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const j = results[i];
+        setAutoStep(`Scoring ${i + 1}/${results.length}: ${j.title}`);
+        try {
+          const a = await analyzeFn({ data: { cv: cv.content, jd: j.description || j.title } });
+          scored.push({ job: j, score: a.score ?? 0, analysis: a });
+          setScores((prev) => ({ ...prev, [j.external_id]: a.score ?? 0 }));
+        } catch (e: any) {
+          if (e?.message?.includes("Rate limit")) {
+            toast.error("Rate limit hit. Try fewer results or wait a moment.");
+            break;
+          }
+          scored.push({ job: j, score: 0, analysis: null });
+        }
+      }
+      const top = scored.sort((a, b) => b.score - a.score).slice(0, n);
+      let drafted = 0;
+      for (let i = 0; i < top.length; i++) {
+        const { job, score, analysis } = top[i];
+        setAutoStep(`Drafting cover letter ${i + 1}/${top.length}: ${job.title}`);
+        const jobId = await saveJob(job);
+        if (!jobId) continue;
+        if (analysis) {
+          await supabase.from("analyses").insert({
+            job_id: jobId,
+            cv_id: cv.id,
+            score,
+            matched_keywords: analysis.matched_keywords ?? [],
+            missing_keywords: analysis.missing_keywords ?? [],
+            strengths: analysis.strengths ?? [],
+            suggestions: analysis.suggestions ?? [],
+            summary: analysis.summary ?? "",
+          });
+        }
+        try {
+          const letter = await coverFn({
+            data: {
+              cv: cv.content,
+              jd: job.description || job.title,
+              company: job.company,
+              role: job.title,
+              tone: "professional",
+            },
+          });
+          await supabase.from("cover_letters").insert({
+            job_id: jobId,
+            cv_id: cv.id,
+            tone: "professional",
+            content: letter.content,
+          });
+          drafted++;
+        } catch (e: any) {
+          console.error("cover letter failed", e);
+        }
+      }
+      toast.success(`Saved ${top.length} top jobs, drafted ${drafted} cover letters`);
+      qc.invalidateQueries();
+    } finally {
+      setAutoBusy(false);
+      setAutoStep("");
     }
   }
 
@@ -150,13 +236,58 @@ function JobsPage() {
         </CardContent>
       </Card>
 
+      {results.length > 0 && (
+        <Card className="border-primary/30">
+          <CardContent className="pt-6 flex flex-col md:flex-row md:items-center gap-3">
+            <div className="flex-1">
+              <p className="text-sm font-medium flex items-center gap-2">
+                <Wand2 className="size-4 text-primary" /> Auto-match top jobs
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Score every result against your CV, save the top picks, and draft tailored cover letters.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="topn" className="text-xs text-muted-foreground">Top</Label>
+              <Select value={topN} onValueChange={setTopN}>
+                <SelectTrigger id="topn" className="w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[1, 3, 5, 10].map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={autoMatchAndDraft} disabled={autoBusy || !cv?.content}>
+                {autoBusy ? <Loader2 className="size-4 animate-spin mr-2" /> : <Sparkles className="size-4 mr-2" />}
+                Auto-match & draft
+              </Button>
+            </div>
+          </CardContent>
+          {autoBusy && autoStep && (
+            <CardContent className="pt-0 text-xs text-muted-foreground">{autoStep}</CardContent>
+          )}
+          {!cv?.content && (
+            <CardContent className="pt-0 text-xs text-destructive">
+              Upload your CV on <Link to="/cv" className="underline">My CV</Link> to enable auto-match.
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       <div className="space-y-3">
         {results.map((j) => (
           <Card key={j.external_id}>
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle className="text-lg">{j.title}</CardTitle>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {j.title}
+                    {scores[j.external_id] != null && (
+                      <Badge variant={scores[j.external_id] >= 70 ? "default" : "secondary"}>
+                        {scores[j.external_id]}/100
+                      </Badge>
+                    )}
+                  </CardTitle>
                   <p className="text-sm text-muted-foreground mt-1">
                     {j.company} {j.location && <Badge variant="secondary" className="ml-2">{j.location}</Badge>}
                   </p>
