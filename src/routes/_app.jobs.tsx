@@ -28,20 +28,33 @@ type Result = {
 function JobsPage() {
   const qc = useQueryClient();
   const searchFn = useServerFn(searchJobs);
+  const analyzeFn = useServerFn(analyzeMatch);
+  const coverFn = useServerFn(generateCoverLetter);
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
   const [seniority, setSeniority] = useState<string>("any");
   const [employmentType, setEmploymentType] = useState<string>("any");
   const [remoteOnly, setRemoteOnly] = useState(false);
+  const [topN, setTopN] = useState<string>("3");
   const [results, setResults] = useState<Result[]>([]);
+  const [scores, setScores] = useState<Record<string, number>>({});
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoStep, setAutoStep] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: cv } = useQuery({
+    queryKey: ["cv"],
+    queryFn: async () =>
+      (await supabase.from("cvs").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle()).data,
+  });
 
   async function go(e: React.FormEvent) {
     e.preventDefault();
     if (!query.trim()) return;
     setBusy(true);
     setError(null);
+    setScores({});
     try {
       const r = await searchFn({
         data: {
@@ -78,6 +91,79 @@ function JobsPage() {
       await supabase.from("applications").insert({ job_id: data.id, status: "saved" });
       toast.success("Saved to tracker");
       qc.invalidateQueries();
+    }
+    return data?.id as string | undefined;
+  }
+
+  async function autoMatchAndDraft() {
+    if (!cv?.content) return toast.error("Upload your CV first on My CV");
+    if (!results.length) return toast.error("Run a search first");
+    const n = Math.max(1, Math.min(parseInt(topN) || 3, results.length));
+    setAutoBusy(true);
+    setScores({});
+    try {
+      setAutoStep(`Scoring ${results.length} jobs...`);
+      const scored: { job: Result; score: number; analysis: any }[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const j = results[i];
+        setAutoStep(`Scoring ${i + 1}/${results.length}: ${j.title}`);
+        try {
+          const a = await analyzeFn({ data: { cv: cv.content, jd: j.description || j.title } });
+          scored.push({ job: j, score: a.score ?? 0, analysis: a });
+          setScores((prev) => ({ ...prev, [j.external_id]: a.score ?? 0 }));
+        } catch (e: any) {
+          if (e?.message?.includes("Rate limit")) {
+            toast.error("Rate limit hit. Try fewer results or wait a moment.");
+            break;
+          }
+          scored.push({ job: j, score: 0, analysis: null });
+        }
+      }
+      const top = scored.sort((a, b) => b.score - a.score).slice(0, n);
+      let drafted = 0;
+      for (let i = 0; i < top.length; i++) {
+        const { job, score, analysis } = top[i];
+        setAutoStep(`Drafting cover letter ${i + 1}/${top.length}: ${job.title}`);
+        const jobId = await saveJob(job);
+        if (!jobId) continue;
+        if (analysis) {
+          await supabase.from("analyses").insert({
+            job_id: jobId,
+            cv_id: cv.id,
+            score,
+            matched_keywords: analysis.matched_keywords ?? [],
+            missing_keywords: analysis.missing_keywords ?? [],
+            strengths: analysis.strengths ?? [],
+            suggestions: analysis.suggestions ?? [],
+            summary: analysis.summary ?? "",
+          });
+        }
+        try {
+          const letter = await coverFn({
+            data: {
+              cv: cv.content,
+              jd: job.description || job.title,
+              company: job.company,
+              role: job.title,
+              tone: "professional",
+            },
+          });
+          await supabase.from("cover_letters").insert({
+            job_id: jobId,
+            cv_id: cv.id,
+            tone: "professional",
+            content: letter.content,
+          });
+          drafted++;
+        } catch (e: any) {
+          console.error("cover letter failed", e);
+        }
+      }
+      toast.success(`Saved ${top.length} top jobs, drafted ${drafted} cover letters`);
+      qc.invalidateQueries();
+    } finally {
+      setAutoBusy(false);
+      setAutoStep("");
     }
   }
 
