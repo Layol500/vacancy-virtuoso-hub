@@ -101,6 +101,23 @@ export const generateCoverLetter = createServerFn({ method: "POST" })
 const SENIORITY = ["no_experience", "under_3_years_experience", "more_than_3_years_experience", "no_degree"] as const;
 const EMPLOYMENT = ["FULLTIME", "PARTTIME", "CONTRACTOR", "INTERN"] as const;
 
+const COUNTRY_MAP: Record<string, string> = {
+  "uk": "gb", "u.k.": "gb", "u.k": "gb",
+  "united kingdom": "gb", "great britain": "gb", "britain": "gb", "england": "gb",
+  "scotland": "gb", "wales": "gb", "northern ireland": "gb",
+  "usa": "us", "u.s.": "us", "u.s.a.": "us", "united states": "us", "america": "us",
+  "uae": "ae", "united arab emirates": "ae",
+};
+
+function detectCountry(loc?: string): string | null {
+  if (!loc) return null;
+  const l = loc.toLowerCase().trim();
+  for (const k of Object.keys(COUNTRY_MAP)) {
+    if (l === k || l.endsWith(", " + k) || l.endsWith(" " + k)) return COUNTRY_MAP[k];
+  }
+  return null;
+}
+
 export const searchJobs = createServerFn({ method: "POST" })
   .inputValidator((d: {
     query: string;
@@ -114,7 +131,7 @@ export const searchJobs = createServerFn({ method: "POST" })
       .object({
         query: z.string().min(1).max(200),
         location: z.string().max(120).optional(),
-        page: z.number().int().min(1).max(10).optional(),
+        page: z.number().int().min(1).max(20).optional(),
         seniority: z.enum(SENIORITY).optional(),
         employmentType: z.enum(EMPLOYMENT).optional(),
         remoteOnly: z.boolean().optional(),
@@ -124,10 +141,12 @@ export const searchJobs = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const key = process.env.RAPIDAPI_KEY;
     if (!key) {
-      return { jobs: [], error: "Job search is not configured. Add a RapidAPI key with JSearch subscribed." };
+      return { jobs: [], error: "Job search is not configured. Add a RapidAPI key with JSearch subscribed.", page: data.page || 1 };
     }
+    const country = detectCountry(data.location);
     const q = encodeURIComponent(`${data.query}${data.location ? " in " + data.location : ""}`);
     let url = `https://jsearch.p.rapidapi.com/search?query=${q}&page=${data.page || 1}&num_pages=1`;
+    if (country) url += `&country=${country}`;
     if (data.seniority) url += `&job_requirements=${data.seniority}`;
     if (data.employmentType) url += `&employment_types=${data.employmentType}`;
     if (data.remoteOnly) url += `&remote_jobs_only=true`;
@@ -137,7 +156,7 @@ export const searchJobs = createServerFn({ method: "POST" })
       });
       if (!r.ok) {
         const t = await r.text();
-        return { jobs: [], error: `JSearch error ${r.status}: ${t.slice(0, 200)}` };
+        return { jobs: [], error: `JSearch error ${r.status}: ${t.slice(0, 200)}`, page: data.page || 1 };
       }
       const json: any = await r.json();
       const jobs = (json.data || []).map((j: any) => ({
@@ -150,8 +169,8 @@ export const searchJobs = createServerFn({ method: "POST" })
         source_url: j.job_apply_link || j.job_google_link,
         description: j.job_description || "",
       }));
-      return { jobs, error: null as string | null };
+      return { jobs, error: null as string | null, page: data.page || 1 };
     } catch (e: any) {
-      return { jobs: [], error: e?.message || "Search failed" };
+      return { jobs: [], error: e?.message || "Search failed", page: data.page || 1 };
     }
   });
