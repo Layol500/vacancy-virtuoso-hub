@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, PenLine, Save, Copy, Download } from "lucide-react";
+import { Loader as Loader2, PenLine, Save, Copy, Download } from "lucide-react";
 import { z } from "zod";
 
 const search = z.object({ jobId: z.string().optional() });
@@ -55,8 +55,8 @@ function CoverLetterPage() {
     try {
       const res = await genFn({ data: { cv: cv.content, jd, tone, company, role } });
       setLetter(res.content);
-    } catch (e: any) {
-      toast.error(e.message || "Generation failed");
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
       setBusy(false);
     }
@@ -64,23 +64,31 @@ function CoverLetterPage() {
 
   async function save() {
     if (!letter) return;
-    let useJobId = jobId;
-    if (!useJobId) {
-      const { data } = await supabase
-        .from("jobs")
-        .insert({ title: role || "Untitled role", company, description: jd })
-        .select("id")
-        .single();
-      useJobId = data?.id;
+    try {
+      let useJobId = jobId;
+      if (!useJobId) {
+        const { data, error } = await supabase
+          .from("jobs")
+          .insert({ title: role || "Untitled role", company, description: jd })
+          .select("id")
+          .single();
+        if (error || !data) {
+          toast.error("Failed to save job");
+          return;
+        }
+        useJobId = data.id;
+      }
+      await supabase.from("cover_letters").insert({
+        job_id: useJobId,
+        cv_id: cv?.id,
+        tone,
+        content: letter,
+      });
+      toast.success("Saved");
+      qc.invalidateQueries();
+    } catch {
+      toast.error("Failed to save cover letter");
     }
-    await supabase.from("cover_letters").insert({
-      job_id: useJobId,
-      cv_id: cv?.id,
-      tone,
-      content: letter,
-    });
-    toast.success("Saved");
-    qc.invalidateQueries();
   }
 
   function download() {

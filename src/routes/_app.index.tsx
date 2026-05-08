@@ -55,10 +55,10 @@ function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard label="Saved jobs" value={stats?.jobs ?? 0} />
-        <StatCard label="ATS analyses" value={stats?.analyses ?? 0} />
-        <StatCard label="Applications" value={stats?.total ?? 0} />
-        <StatCard label="In interview" value={stats?.byStatus?.interview ?? 0} />
+        <StatCard label="Saved jobs" value={stats?.jobs ?? 0} to="/jobs" />
+        <StatCard label="ATS analyses" value={stats?.analyses ?? 0} to="/match" />
+        <StatCard label="Applications" value={stats?.total ?? 0} to="/applications" />
+        <StatCard label="In interview" value={stats?.byStatus?.interview ?? 0} to="/applications" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
@@ -73,14 +73,16 @@ function Dashboard() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, to }: { label: string; value: number; to: string }) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className="text-3xl font-semibold mt-1">{value}</p>
-      </CardContent>
-    </Card>
+    <Link to={to as Parameters<typeof Link>[0]["to"]} className="block group">
+      <Card className="h-full transition-colors hover:border-primary/50 cursor-pointer">
+        <CardContent className="pt-6">
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="text-3xl font-semibold mt-1 group-hover:text-primary transition-colors">{value}</p>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 

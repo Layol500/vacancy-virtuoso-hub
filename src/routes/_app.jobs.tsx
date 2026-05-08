@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Loader2, Search, ExternalLink, Bookmark, Sparkles, Wand2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader as Loader2, Search, ExternalLink, Bookmark, Sparkles, Wand as Wand2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 
 export const Route = createFileRoute("/_app/jobs")({ component: JobsPage });
 
@@ -30,8 +30,10 @@ type Analysis = {
   summary?: string;
   matched_keywords?: string[];
   missing_keywords?: string[];
+  required_missing?: string[];
   strengths?: string[];
   suggestions?: string[];
+  keyword_density?: number;
 };
 
 function JobsPage() {
@@ -72,16 +74,16 @@ function JobsPage() {
           query,
           location,
           page: p,
-          seniority: seniority !== "any" ? (seniority as any) : undefined,
-          employmentType: employmentType !== "any" ? (employmentType as any) : undefined,
+          seniority: seniority !== "any" ? (seniority as "no_experience" | "under_3_years_experience" | "more_than_3_years_experience" | "no_degree") : undefined,
+          employmentType: employmentType !== "any" ? (employmentType as "FULLTIME" | "PARTTIME" | "CONTRACTOR" | "INTERN") : undefined,
           remoteOnly: remoteOnly || undefined,
         },
       });
       setResults(r.jobs);
       setPage(p);
       if (r.error) setError(r.error);
-    } catch (e: any) {
-      setError(e.message || "Search failed");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Search failed");
     } finally {
       setBusy(false);
     }
@@ -129,8 +131,8 @@ function JobsPage() {
           const a = await analyzeFn({ data: { cv: cv.content, jd: j.description || j.title } });
           scored.push({ job: j, analysis: a });
           setAnalyses((prev) => ({ ...prev, [j.external_id]: a }));
-        } catch (e: any) {
-          if (e?.message?.includes("Rate limit")) {
+        } catch (e: unknown) {
+          if (e instanceof Error && e.message.includes("Rate limit")) {
             toast.error("Rate limit hit. Try fewer results or wait a moment.");
             break;
           }
@@ -176,7 +178,7 @@ function JobsPage() {
             content: letter.content,
           });
           drafted++;
-        } catch (e: any) {
+        } catch (e: unknown) {
           console.error("cover letter failed", e);
         }
       }
@@ -190,18 +192,18 @@ function JobsPage() {
 
   async function scoreOne(j: Result) {
     if (!cv?.content) return toast.error("Upload your CV first");
-    setAnalyses((p) => ({ ...p, [j.external_id]: { score: -1 } as any }));
+    setAnalyses((p) => ({ ...p, [j.external_id]: { score: -1 } as Analysis }));
     try {
       const a = await analyzeFn({ data: { cv: cv.content, jd: j.description || j.title } });
-      setAnalyses((p) => ({ ...p, [j.external_id]: a }));
+      setAnalyses((p) => ({ ...p, [j.external_id]: a as Analysis }));
       setOpenId(j.external_id);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setAnalyses((p) => {
         const cp = { ...p };
         delete cp[j.external_id];
         return cp;
       });
-      toast.error(e.message || "Scoring failed");
+      toast.error(e instanceof Error ? e.message : "Scoring failed");
     }
   }
 
