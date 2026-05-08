@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileUser, Sparkles, PenLine, Search, Kanban, ArrowRight } from "lucide-react";
+import { FileUser, Sparkles, PenLine, Search, Kanban, ArrowRight, Mail } from "lucide-react";
 
 export const Route = createFileRoute("/_app/")({
   component: Dashboard,
@@ -64,6 +64,7 @@ function Dashboard() {
       <div className="grid md:grid-cols-2 gap-4">
         <ActionCard to="/match" icon={Sparkles} title="ATS Match" desc="Score your CV against any job description." />
         <ActionCard to="/cover-letter" icon={PenLine} title="Cover Letter" desc="Generate a tailored cover letter in seconds." />
+        <ActionCard to="/cover-letters" icon={Mail} title="Saved Letters" desc="Browse cover letters you've drafted." />
         <ActionCard to="/jobs" icon={Search} title="Find Jobs" desc="Search live vacancies worldwide." />
         <ActionCard to="/applications" icon={Kanban} title="Tracker" desc="Move applications through stages." />
         <ActionCard to="/cv" icon={FileUser} title="My CV" desc="Update or replace your CV." />
@@ -95,8 +96,8 @@ function ActionCard({
   desc: string;
 }) {
   return (
-    <Link to={to}>
-      <Card className="h-full hover:border-primary/50 transition-colors">
+    <Link to={to as any} className="block">
+      <Card className="h-full hover:border-primary/50 transition-colors cursor-pointer">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-md bg-secondary flex items-center justify-center">
