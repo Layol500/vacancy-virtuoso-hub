@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router";
-import { LayoutDashboard, FileUser, Sparkles, PenLine, Search, Kanban } from "lucide-react";
+import { LayoutDashboard, FileUser, Sparkles, PenLine, Search, Kanban, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -7,6 +7,7 @@ const nav = [
   { to: "/cv", label: "My CV", icon: FileUser },
   { to: "/match", label: "ATS Match", icon: Sparkles },
   { to: "/cover-letter", label: "Cover Letter", icon: PenLine },
+  { to: "/cover-letters", label: "Saved Letters", icon: Mail },
   { to: "/jobs", label: "Job Search", icon: Search },
   { to: "/applications", label: "Tracker", icon: Kanban },
 ] as const;
@@ -52,7 +53,7 @@ export function AppLayout() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 border-t border-border bg-background/95 backdrop-blur z-40">
-        <div className="grid grid-cols-6">
+        <div className="grid grid-cols-7">
           {nav.map((n) => {
             const Icon = n.icon;
             const active = loc.pathname === n.to;

@@ -14,6 +14,7 @@ import { Route as AppIndexRouteImport } from './routes/_app.index'
 import { Route as AppMatchRouteImport } from './routes/_app.match'
 import { Route as AppJobsRouteImport } from './routes/_app.jobs'
 import { Route as AppCvRouteImport } from './routes/_app.cv'
+import { Route as AppCoverLettersRouteImport } from './routes/_app.cover-letters'
 import { Route as AppCoverLetterRouteImport } from './routes/_app.cover-letter'
 import { Route as AppApplicationsRouteImport } from './routes/_app.applications'
 
@@ -41,6 +42,11 @@ const AppCvRoute = AppCvRouteImport.update({
   path: '/cv',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCoverLettersRoute = AppCoverLettersRouteImport.update({
+  id: '/cover-letters',
+  path: '/cover-letters',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppCoverLetterRoute = AppCoverLetterRouteImport.update({
   id: '/cover-letter',
   path: '/cover-letter',
@@ -56,6 +62,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/applications': typeof AppApplicationsRoute
   '/cover-letter': typeof AppCoverLetterRoute
+  '/cover-letters': typeof AppCoverLettersRoute
   '/cv': typeof AppCvRoute
   '/jobs': typeof AppJobsRoute
   '/match': typeof AppMatchRoute
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/applications': typeof AppApplicationsRoute
   '/cover-letter': typeof AppCoverLetterRoute
+  '/cover-letters': typeof AppCoverLettersRoute
   '/cv': typeof AppCvRoute
   '/jobs': typeof AppJobsRoute
   '/match': typeof AppMatchRoute
@@ -73,6 +81,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/_app/applications': typeof AppApplicationsRoute
   '/_app/cover-letter': typeof AppCoverLetterRoute
+  '/_app/cover-letters': typeof AppCoverLettersRoute
   '/_app/cv': typeof AppCvRoute
   '/_app/jobs': typeof AppJobsRoute
   '/_app/match': typeof AppMatchRoute
@@ -84,16 +93,25 @@ export interface FileRouteTypes {
     | '/'
     | '/applications'
     | '/cover-letter'
+    | '/cover-letters'
     | '/cv'
     | '/jobs'
     | '/match'
   fileRoutesByTo: FileRoutesByTo
-  to: '/applications' | '/cover-letter' | '/cv' | '/jobs' | '/match' | '/'
+  to:
+    | '/applications'
+    | '/cover-letter'
+    | '/cover-letters'
+    | '/cv'
+    | '/jobs'
+    | '/match'
+    | '/'
   id:
     | '__root__'
     | '/_app'
     | '/_app/applications'
     | '/_app/cover-letter'
+    | '/_app/cover-letters'
     | '/_app/cv'
     | '/_app/jobs'
     | '/_app/match'
@@ -141,6 +159,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCvRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/cover-letters': {
+      id: '/_app/cover-letters'
+      path: '/cover-letters'
+      fullPath: '/cover-letters'
+      preLoaderRoute: typeof AppCoverLettersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/cover-letter': {
       id: '/_app/cover-letter'
       path: '/cover-letter'
@@ -161,6 +186,7 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppApplicationsRoute: typeof AppApplicationsRoute
   AppCoverLetterRoute: typeof AppCoverLetterRoute
+  AppCoverLettersRoute: typeof AppCoverLettersRoute
   AppCvRoute: typeof AppCvRoute
   AppJobsRoute: typeof AppJobsRoute
   AppMatchRoute: typeof AppMatchRoute
@@ -170,6 +196,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppApplicationsRoute: AppApplicationsRoute,
   AppCoverLetterRoute: AppCoverLetterRoute,
+  AppCoverLettersRoute: AppCoverLettersRoute,
   AppCvRoute: AppCvRoute,
   AppJobsRoute: AppJobsRoute,
   AppMatchRoute: AppMatchRoute,
@@ -184,3 +211,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
