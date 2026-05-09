@@ -95,24 +95,44 @@ function JobsPage() {
   }
 
   async function saveJob(j: Result) {
-    const { data } = await supabase
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) {
+      toast.error("You must be signed in");
+      return undefined;
+    }
+    const { data, error } = await supabase
       .from("jobs")
-      .insert({
-        title: j.title,
-        company: j.company,
-        location: j.location,
-        source_url: j.source_url,
-        description: j.description,
-        external_id: j.external_id,
-      })
+      .upsert(
+        {
+          title: j.title,
+          company: j.company,
+          location: j.location,
+          source_url: j.source_url,
+          description: j.description,
+          external_id: j.external_id,
+          user_id: uid,
+        },
+        { onConflict: "user_id,external_id", ignoreDuplicates: false },
+      )
       .select("id")
       .single();
-    if (data) {
-      await supabase.from("applications").insert({ job_id: data.id, status: "saved" });
-      toast.success("Saved to tracker");
-      qc.invalidateQueries();
+    if (error || !data) {
+      toast.error(error?.message || "Failed to save job");
+      return undefined;
     }
-    return data?.id as string | undefined;
+    // Ensure an application row exists (don't duplicate if already saved)
+    const { data: existing } = await supabase
+      .from("applications")
+      .select("id")
+      .eq("job_id", data.id)
+      .maybeSingle();
+    if (!existing) {
+      await supabase.from("applications").insert({ job_id: data.id, status: "saved" });
+    }
+    toast.success("Saved to tracker");
+    qc.invalidateQueries();
+    return data.id as string;
   }
 
   async function autoMatchAndDraft() {

@@ -43,10 +43,20 @@ function CvPage() {
     try {
       const text = await parseCvFile(file);
       setContent(text);
-      // upload original to storage
-      const path = `cv-${Date.now()}-${file.name}`;
-      const up = await supabase.storage.from("cvs").upload(path, file, { upsert: true });
-      const filePath = up.data?.path || null;
+      // upload original to storage under {user_id}/ folder (required by RLS)
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      let filePath: string | null = null;
+      if (uid) {
+        const path = `${uid}/cv-${Date.now()}-${file.name}`;
+        const up = await supabase.storage.from("cvs").upload(path, file, { upsert: true });
+        if (up.error) {
+          console.error("CV upload failed:", up.error);
+          toast.error(`File upload failed: ${up.error.message}`);
+        } else {
+          filePath = up.data?.path || null;
+        }
+      }
       const payload = {
         name: name || file.name,
         file_name: file.name,
