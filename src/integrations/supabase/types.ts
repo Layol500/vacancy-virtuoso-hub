@@ -26,6 +26,7 @@ export type Database = {
           strengths: Json
           suggestions: Json
           summary: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string
@@ -38,6 +39,7 @@ export type Database = {
           strengths?: Json
           suggestions?: Json
           summary?: string | null
+          user_id?: string
         }
         Update: {
           created_at?: string
@@ -50,6 +52,7 @@ export type Database = {
           strengths?: Json
           suggestions?: Json
           summary?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -78,6 +81,7 @@ export type Database = {
           notes: string | null
           status: Database["public"]["Enums"]["application_status"]
           updated_at: string
+          user_id: string
         }
         Insert: {
           applied_at?: string | null
@@ -88,6 +92,7 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
+          user_id?: string
         }
         Update: {
           applied_at?: string | null
@@ -98,6 +103,7 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -117,6 +123,7 @@ export type Database = {
           id: string
           job_id: string | null
           tone: string
+          user_id: string
         }
         Insert: {
           content: string
@@ -125,6 +132,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           tone?: string
+          user_id?: string
         }
         Update: {
           content?: string
@@ -133,6 +141,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           tone?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -161,6 +170,7 @@ export type Database = {
           is_default: boolean
           name: string
           updated_at: string
+          user_id: string
         }
         Insert: {
           content?: string
@@ -171,6 +181,7 @@ export type Database = {
           is_default?: boolean
           name?: string
           updated_at?: string
+          user_id?: string
         }
         Update: {
           content?: string
@@ -181,6 +192,7 @@ export type Database = {
           is_default?: boolean
           name?: string
           updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -194,6 +206,7 @@ export type Database = {
           location: string | null
           source_url: string | null
           title: string
+          user_id: string
         }
         Insert: {
           company?: string | null
@@ -204,6 +217,7 @@ export type Database = {
           location?: string | null
           source_url?: string | null
           title: string
+          user_id?: string
         }
         Update: {
           company?: string | null
@@ -214,6 +228,7 @@ export type Database = {
           location?: string | null
           source_url?: string | null
           title?: string
+          user_id?: string
         }
         Relationships: []
       }
