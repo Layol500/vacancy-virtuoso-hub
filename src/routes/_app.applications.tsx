@@ -56,7 +56,7 @@ function TrackerPage() {
     if (!newStatus) return;
     const app = apps.find((a) => a.id === id);
     if (!app || app.status === newStatus) return;
-    const patch: any = { status: newStatus };
+    const patch: { status: Stage; applied_at?: string } = { status: newStatus };
     if (newStatus === "applied" && !app.status.match(/applied|interview|offer/)) {
       patch.applied_at = new Date().toISOString().slice(0, 10);
     }
@@ -64,10 +64,9 @@ function TrackerPage() {
     qc.invalidateQueries({ queryKey: ["applications"] });
   }
 
-  async function remove(id: string, jobId: string) {
+  async function remove(id: string) {
     await supabase.from("applications").delete().eq("id", id);
-    await supabase.from("jobs").delete().eq("id", jobId);
-    toast.success("Removed");
+    toast.success("Removed from tracker");
     qc.invalidateQueries({ queryKey: ["applications"] });
   }
 
@@ -91,7 +90,7 @@ function TrackerPage() {
           {STAGES.map((s) => (
             <Column key={s.id} id={s.id} label={s.label}>
               {apps.filter((a) => a.status === s.id).map((a) => (
-                <AppCard key={a.id} app={a} onRemove={() => remove(a.id, a.job_id)} />
+                <AppCard key={a.id} app={a} onRemove={() => remove(a.id)} />
               ))}
             </Column>
           ))}
